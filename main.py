@@ -30,13 +30,13 @@ async def server_up():
         connection.connect()
         if is_server_down:
             is_server_down = False
-            await send_msg("{} Server is back online!".format(audiobooks))
+            await send_msg("<@{}> Server is back online!".format(audiobooks))
         print("Server is up")
     except Exception as e:
         if not is_server_down:
             is_server_down = True
             print("it's down! {}".format(e))
-            await send_msg("{0} The server is down! {1}".format(kymahi, e))
+            await send_msg("<@{0}> The server is down! {1}".format(kymahi, e))
     finally:
         connection.close()
 
@@ -54,7 +54,7 @@ async def ip_changed():
             print("IP is now {}".format(new_ip))
             f = open(ipf, "w")
             f.write(new_ip)
-            await send_msg("{0} The IP address has changed to {1}".format(audiobooks, new_ip))
+            await send_msg("<@{0}> The IP address has changed to {1}".format(audiobooks, new_ip))
             f.close()
     else:
         print("No IP set. Set to {}".format(new_ip))
