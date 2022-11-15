@@ -1,9 +1,7 @@
 import discord
 from discord.ext import commands, tasks
-import socket
 from urllib import request
-from urllib.parse import urlsplit, urlparse
-import threading
+from urllib.parse import urlsplit
 from http.client import HTTPConnection
 
 intents = discord.Intents(message_content=True, messages=True, reactions=True, guilds=True)
