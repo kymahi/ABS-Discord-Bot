@@ -1,19 +1,14 @@
+import os
 import discord
 from discord.ext import commands, tasks
 from urllib import request
-from urllib.parse import urlsplit
-from http.client import HTTPConnection
 
 intents = discord.Intents(message_content=True, messages=True, reactions=True, guilds=True)
 bot = commands.Bot(intents=intents, command_prefix='!')
 
-ipf = "ip.txt"
-
-f = open("token.txt", "r")
-token = f.read()
-f.close()
-
+token = os.environ['discord_token']
 url = ""
+healthcheck = ""
 channel = -1
 kymahi = -1
 audiobooks = -1
@@ -25,83 +20,60 @@ is_server_down = False
 async def server_up():
     global is_server_down
 
-    connection = HTTPConnection(host=url, timeout=10)
     try:
-        connection.connect()
-        if is_server_down:
+        status_code = request.urlopen("https://{}".format(healthcheck)).getcode()
+        if status_code != 200:
+            is_server_down = True
+            print("it's down!")
+            await send_msg("<@{}> The server is down!".format(kymahi))
+        elif is_server_down:
             is_server_down = False
-            await send_msg("<@{}> Server is back online!".format(audiobooks))
-        print("Server is up")
+            await send_msg("<@&{}> Server is back online!".format(audiobooks))
+            print("Server is back up. status_code: {}".format(status_code))
+        else:
+            print("Server is up. status_code: {}".format(status_code))
     except Exception as e:
         if not is_server_down:
             is_server_down = True
             print("it's down! {}".format(e))
             await send_msg("<@{0}> The server is down! {1}".format(kymahi, e))
-    finally:
-        connection.close()
-
-
-@tasks.loop(hours=12.0)
-async def ip_changed():
-    f = open(ipf, "r")
-    text = f.read()
-    f.close()
-    new_ip = get_ip()
-    if text:
-        if text == new_ip:
-            print("No IP change")
-        else:
-            print("IP is now {}".format(new_ip))
-            f = open(ipf, "w")
-            f.write(new_ip)
-            await send_msg("<@{0}> The IP address has changed to {1}".format(audiobooks, new_ip))
-            f.close()
-    else:
-        print("No IP set. Set to {}".format(new_ip))
-        f = open(ipf, "w")
-        f.write(new_ip)
-        f.close()
 
 
 @bot.event
 async def on_ready():
-    open(ipf, "a+").close()
-    
     server_up.start()
-    ip_changed.start()
 
     global url
+    global healthcheck
     global channel
     global kymahi
     global audiobooks
 
-    f = open("url.txt", "r")
-    url = f.read().splitlines()[0]
-    f.close()
+    url = os.environ['server_url']
+    healthcheck = url + "/healthcheck"
+    channel = int(os.environ['audiobooks_channel'])
+    # channel = int(os.environ['bot_test_channel'])
+    kymahi = int(os.environ['kymahi_id'])
+    audiobooks = os.environ['audiobooks_role']
 
-    f = open("abc.txt", "r")
-    audiobooks = int(f.read().splitlines()[0])
-    f.close()
-
-    f = open("kymahi.txt", "r")
-    kymahi = int(f.read().splitlines()[0])
-    f.close()
-
-    f = open("audiobooks.txt", "r")
-    audiobooks = int(f.read().splitlines()[0])
-    f.close()
 
 @bot.command(name="ip")
 async def ip(ctx):
-    await ctx.send(get_ip())
+    try:
+        await ctx.send(get_ip())
+    except Exception as e:
+        await send_msg("it broke: {}".format(e))
+        await server_up()
 
 
-async def send_msg(msg: str): 
-    await bot.get_channel(1042103392031481858).send(msg)
+@bot.command(name="address")
+async def address(ctx):
+    await ip(ctx)
+
+
+async def send_msg(msg: str):
+    await bot.get_channel(channel).send(msg)
 
 
 def get_ip():
-    return urlsplit(request.urlopen("http://{}".format(url)).url).netloc
-
-
-bot.run(token)
+    return request.urlopen("https://{}".format(url)).url
