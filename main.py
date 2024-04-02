@@ -7,11 +7,11 @@ intents = discord.Intents(message_content=True, messages=True, reactions=True, g
 bot = commands.Bot(intents=intents, command_prefix='!')
 
 token = os.environ['discord_token']
-url = ""
-healthcheck = ""
-channel = -1
-kymahi = -1
-audiobooks = -1
+url = os.environ['server_url']
+healthcheck = url + "/healthcheck"
+channel = int(os.environ['audiobooks_channel'])
+kymahi = int(os.environ['kymahi_id'])
+audiobooks = int(os.environ['audiobooks_role'])
 
 is_server_down = False
 
@@ -43,26 +43,13 @@ async def server_up():
 async def on_ready():
     server_up.start()
 
-    global url
-    global healthcheck
-    global channel
-    global kymahi
-    global audiobooks
-
-    url = os.environ['server_url']
-    healthcheck = url + "/healthcheck"
-    channel = int(os.environ['audiobooks_channel'])
-    # channel = int(os.environ['bot_test_channel'])
-    kymahi = int(os.environ['kymahi_id'])
-    audiobooks = os.environ['audiobooks_role']
-
 
 @bot.command(name="ip")
 async def ip(ctx):
     try:
-        await ctx.send(get_ip())
+        await ctx.send("https://{}".format(url))
     except Exception as e:
-        await send_msg("it broke: {}".format(e))
+        await ctx.send("it broke: {}".format(e))
         await server_up()
 
 
@@ -75,5 +62,4 @@ async def send_msg(msg: str):
     await bot.get_channel(channel).send(msg)
 
 
-def get_ip():
-    return request.urlopen("https://{}".format(url)).url
+bot.run(token)
